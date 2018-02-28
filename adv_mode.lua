@@ -10,20 +10,27 @@ local current_weapon = "none"
 
 ---- key bind ----
 
-local ump9_key = 8
-local akm_key = nil
+local ump9_key = nil
+local akm_key = 6
 local m16a4_key = 5
-local m416_key = nil
+local m16a4_key_pressed = false
+local m416_key = 7
 local scarl_key = nil
 local uzi_key = nil
 
+local trigger_key = 7
+
 local set_off_key = 6
+
+local functional = -1
 
 
 ---- fire key ----
 
-local fire_key = "Pause"
+local aim_key = 3
+local fire_key = "comma"
 local mode_switch_key = "capslock"
+local auto_ads_key = "scrolllock"
 
 
 ---- ignore key ----
@@ -35,8 +42,8 @@ local ignore_key = "lshift"
 --- default is 50.0
 
 local target_sensitivity = 50
-local scope_sensitivity = 50
-local scope4x_sensitivity = 50
+local scope_sensitivity = 47
+local scope4x_sensitivity = 44
 
 ---- Obfs setting
 ---- Two firing time intervals = weapon_speed * interval_ratio * ( 1 + random_seed * ( 0 ~ 1))
@@ -148,9 +155,7 @@ function recoil_value(_weapon,_duration)
     recoil_recovery = weapon_recoil * weapon_intervals / 100
     
     -- issues/3
-    if IsMouseButtonPressed(2) then
-        recoil_recovery = recoil_recovery / target_scale
-    elseif recoil_mode() == "basic" then
+    if recoil_mode() == "basic" then
         recoil_recovery = recoil_recovery / scope_scale
     elseif recoil_mode() == "quadruple" then
         recoil_recovery= recoil_recovery / scope4x_scale
@@ -166,6 +171,8 @@ end
 
 
 function OnEvent(event, arg)
+    
+    local fire_key_pressed = -1
     OutputLogMessage("event = %s, arg = %d\n", event, arg)
     if (event == "PROFILE_ACTIVATED") then
         EnablePrimaryMouseButtonEvents(true)
@@ -173,43 +180,57 @@ function OnEvent(event, arg)
         current_weapon = "none"
         shoot_duration = 0.0
         ReleaseKey(fire_key)
-        ReleaseMouseButton(1)
+        ReleaseMouseButton(9)
     end
 
-    if (event == "MOUSE_BUTTON_PRESSED" and arg == set_off_key) then
-        current_weapon = "none"
-    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == akm_key) then
+    if (event == "MOUSE_BUTTON_PRESSED" and arg == akm_key) then
         current_weapon = "akm"
+        fire_key_pressed = 1
     elseif (event == "MOUSE_BUTTON_PRESSED" and arg == m16a4_key) then
         current_weapon = "m16a4"
+        fire_key_pressed = 1
     elseif (event == "MOUSE_BUTTON_PRESSED" and arg == m416_key) then
         current_weapon = "m416"
+        fire_key_pressed = 1
     elseif (event == "MOUSE_BUTTON_PRESSED" and arg == ump9_key) then
         current_weapon = "ump9"
+        fire_key_pressed = 1
     elseif (event == "MOUSE_BUTTON_PRESSED" and arg == uzi_key) then
         current_weapon = "uzi"
+        fire_key_pressed = 1
     elseif (event == "MOUSE_BUTTON_PRESSED" and arg == scarl_key) then
         current_weapon = "scarl"
-    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == 1) then
-        -- button 1 : Shoot
-        if ((current_weapon == "none") or IsModifierPressed(ignore_key)) then
-            PressKey(fire_key)
-            repeat
-                Sleep(30)
-            until not IsMouseButtonPressed(1)
-            ReleaseKey(fire_key)
-        else
-            local shoot_duration = 0.0
-            repeat
-                local intervals,recovery = recoil_value(current_weapon,shoot_duration)
-                PressAndReleaseKey(fire_key)
-                MoveMouseRelative(0, recovery )
-                Sleep(intervals)
-                shoot_duration = shoot_duration + intervals
-            until not IsMouseButtonPressed(1)
-        end
-    elseif (event == "MOUSE_BUTTON_RELEASED" and arg == 1) then
-        ReleaseKey(fire_key)
+        fire_key_pressed = 1
     end
-
+    
+    if (fire_key_pressed == 1) then 
+        functional = -functional
+        OutputLogMessage("Functional = %d\n", functional )
+    end
+    
+    if (event == "MOUSE_BUTTON_PRESSED" and arg == 1 and functional == 1) then
+        if (recoil_mode() == "basic" and IsKeyLockOn(auto_ads_key))  then
+            PressAndReleaseMouseButton(aim_key)
+        end
+        local shoot_duration = 0.0
+        repeat
+            local intervals,recovery = recoil_value(current_weapon,shoot_duration)
+            if (current_weapon == "m16a4") then
+                PressKey(aim_key)
+            end
+            MoveMouseRelative(0, recovery)
+            Sleep(intervals/2)
+            if (current_weapon == "m16a4") then
+                ReleaseKey(fire_key)
+            end
+            Sleep(intervals/2)
+            shoot_duration = shoot_duration + intervals
+        until not IsMouseButtonPressed(1)
+    elseif (event == "MOUSE_BUTTON_RELEASED" and arg == 1 and functional == 1) then
+        -- ReleaseKey(fire_key)
+        if (recoil_mode() == "basic" and IsKeyLockOn(auto_ads_key)) then
+            PressAndReleaseMouseButton(fire_key)
+        end
+    end
+    fire_key_pressed = -1
 end
