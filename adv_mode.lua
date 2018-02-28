@@ -10,7 +10,7 @@ local current_weapon = "none"
 
 ---- key bind ----
 
-local ump9_key = nil
+local ump9_key = 4
 local akm_key = 6
 local m16a4_key = 5
 local m16a4_key_pressed = false
@@ -28,7 +28,7 @@ local functional = -1
 ---- fire key ----
 
 local aim_key = 3
-local fire_key = "comma"
+local fire_key = "pause"
 local mode_switch_key = "capslock"
 local auto_ads_key = "scrolllock"
 
@@ -203,9 +203,16 @@ function OnEvent(event, arg)
         fire_key_pressed = 1
     end
     
-    if (fire_key_pressed == 1) then 
+    if fire_key_pressed == 1 then 
         functional = -functional
         OutputLogMessage("Functional = %d\n", functional )
+    end
+    
+    if (event == "MOUSE_BUTTON_PRESSED" and arg == 1) then
+        PressKey(fire_key)
+    end
+    if (event == "MOUSE_BUTTON_RELEASED" and arg == 1) then
+        ReleaseKey(fire_key)
     end
     
     if (event == "MOUSE_BUTTON_PRESSED" and arg == 1 and functional == 1) then
@@ -216,21 +223,32 @@ function OnEvent(event, arg)
         repeat
             local intervals,recovery = recoil_value(current_weapon,shoot_duration)
             if (current_weapon == "m16a4") then
-                PressKey(aim_key)
+                PressKey(fire_key)
+                Sleep(intervals)
+                MoveMouseRelative(0, recovery)
+                ReleaseKey(fire_key)
+                
+                Sleep(intervals*2)
+                intervals,recovery = recoil_value(current_weapon,shoot_duration)
+                MoveMouseRelative(0, recovery)
+                
+                Sleep(intervals)
+                intervals,recovery = recoil_value(current_weapon,shoot_duration)
+                MoveMouseRelative(0, recovery)
+            else
+                Sleep(intervals)
             end
             MoveMouseRelative(0, recovery)
-            Sleep(intervals/2)
-            if (current_weapon == "m16a4") then
-                ReleaseKey(fire_key)
-            end
-            Sleep(intervals/2)
             shoot_duration = shoot_duration + intervals
         until not IsMouseButtonPressed(1)
     elseif (event == "MOUSE_BUTTON_RELEASED" and arg == 1 and functional == 1) then
         -- ReleaseKey(fire_key)
         if (recoil_mode() == "basic" and IsKeyLockOn(auto_ads_key)) then
-            PressAndReleaseMouseButton(fire_key)
+            PressAndReleaseMouseButton(aim_key)
         end
     end
+    
+    
+    
     fire_key_pressed = -1
 end
