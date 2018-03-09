@@ -29,8 +29,8 @@ local functional = -1
 
 local aim_key = 3
 local fire_key = "pause"
-local mode_switch_key = "capslock"
-local auto_ads_key = "scrolllock"
+local mode_switch_key = "scrolllock"
+local auto_ads_key = "capslock"
 
 
 ---- ignore key ----
