@@ -1,4 +1,4 @@
---------------------------------------------------------------------------
+----------------------------------------------------------------------------
 ----------------        Basic Variable       -----------------------------
 ----------------         Do not edit                 ---------------------
 --------------------------------------------------------------------------
@@ -12,11 +12,11 @@ local current_weapon = "none"
 
 local ump9_key = 4
 local akm_key = 6
-local m16a4_key = 5
+local m16a4_key = nil
 local m16a4_key_pressed = false
 local m416_key = 7
 local scarl_key = nil
-local uzi_key = nil
+local uzi_key = 5
 
 local trigger_key = 7
 
@@ -66,17 +66,23 @@ recoil_table["ump9"] = {
     speed = 92
 }
 
+-- recoil_table["akm"] = {
+--     basic={23.7,23.7,23.7,23.7,23.7,23.7,23.7,23.7,23.7,23.7,23.7,28,28,28,28,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7},
+--     quadruple={66.7,66.7,66.7,66.7,66.7,66.7,66.7,66.7,66.7,66.7,66.7,123.3,123.3,123.3,123.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3},
+--     speed = 100
+-- }
+
 recoil_table["akm"] = {
-    basic={23.7,23.7,23.7,23.7,23.7,23.7,23.7,23.7,23.7,23.7,23.7,28,28,28,28,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7,29.7},
-    quadruple={66.7,66.7,66.7,66.7,66.7,66.7,66.7,66.7,66.7,66.7,66.7,123.3,123.3,123.3,123.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3,93.3},
+    basic={25,25,25,29,33,33,32,33,32,32,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30},
+    quadruple={86.7,86.7,86.7,86.7,86.7,86.7,86.7,150,150,150,150,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120},
     speed = 100
 }
 
-recoil_table["m16a4"] = {
-    basic={25,25,25,29,33,33,32,33,32,32,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30},
-    quadruple={86.7,86.7,86.7,86.7,86.7,86.7,86.7,150,150,150,150,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120},
-    speed = 75
-}
+-- recoil_table["m16a4"] = {
+--     basic={25,25,25,29,33,33,32,33,32,32,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30},
+--     quadruple={86.7,86.7,86.7,86.7,86.7,86.7,86.7,150,150,150,150,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120},
+--     speed = 75
+-- }
 
 recoil_table["m416"] = {
     basic={21,21,21,21,21,21,21,21,21,23,23,24,23,24,25,25,26,27,27,32,31,31,31,31,31,31,31,32,32,32,35,35,35,35,35,35,35,35,35,35,35},
@@ -101,6 +107,9 @@ recoil_table["none"] = {
     quadruple={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
     speed = 60
 }
+
+local lean_base=10.0;
+local lean_ran=20.0;
 
 
 --------------------------------------------------------------------------
@@ -129,46 +138,52 @@ function recoil_mode()
 end
 
 
-function recoil_value(_weapon,_duration)
-    local _mode = recoil_mode()
-    local step = (math.floor(_duration/100)) + 1
-    if step > 40 then
-        step = 40
+function recoil_value(_factor,_duration)
+    return_mod=1.2
+	
+    if _duration<20.0 then
+    	return_mod=return_mod*2
     end
-    local weapon_recoil = recoil_table[_weapon][_mode][step]
-    -- OutputLogMessage("weapon_recoil = %s\n", weapon_recoil)
-    
-    local weapon_speed = 30
-    if weapon_speed_mode then
-        weapon_speed = recoil_table[_weapon]["speed"]
+    if _factor>2.5 then
+        if _duration>350.0 then 
+            _duration=350.0
+        end
+        if _duration>300.0 then
+            return_mod=return_mod*1.3
+            OutputLogMessage("RETURN_MOD=1.5\n")
+        end
+    elseif _factor<1.7 then
+		
+		if _duration>200.0 then
+			OutputLogMessage("M249_MAX\n")
+        		_duration=100.0
+   		end
+		return_mod=return_mod*(1.3+3.0*_duration/1000.0)
+    elseif _duration>500.0 then
+        _duration=500.0
     end
-    -- OutputLogMessage("weapon_speed = %s\n", weapon_speed)
+    local v=factor*(0.5+1.1*_duration/1000.0)
+    -- if v<factor*0.5 then
+    --     v=factor*0.5
+    -- end
+        return v*6*return_mod;
 
-    local weapon_intervals = weapon_speed
-    if obfs_mode then
-
-        local coefficient = interval_ratio * ( 1 + random_seed * math.random())
-        weapon_intervals = math.floor(coefficient  * weapon_speed) 
-    end
-    -- OutputLogMessage("weapon_intervals = %s\n", weapon_intervals)
-
-    recoil_recovery = weapon_recoil * weapon_intervals / 100
-    
-    -- issues/3
-    if recoil_mode() == "basic" then
-        recoil_recovery = recoil_recovery / scope_scale
-    elseif recoil_mode() == "quadruple" then
-        recoil_recovery= recoil_recovery / scope4x_scale
-    end
-
-    return weapon_intervals,recoil_recovery
 end
 
+-- function recoil_value(_factor,_duration)
+--     _factor=3
+--     local v=3.0+(1.4*_duration)/86.0, 8.0
+--     if (v>8.0) then
+--         v=8.0
+--     end
+--     return v*50.0/86.0/4.0
+-- end
 
---------------------------------------------------------------------------
-----------------          OnEvent          ------------------------------
---------------------------------------------------------------------------
+-- math.randomseed(os.time())
 
+function bool2int(value)
+    return value and 1 or 0
+end
 
 function OnEvent(event, arg)
     
@@ -183,24 +198,20 @@ function OnEvent(event, arg)
         ReleaseMouseButton(9)
     end
 
-    if (event == "MOUSE_BUTTON_PRESSED" and arg == akm_key) then
-        current_weapon = "akm"
+    if (event == "MOUSE_BUTTON_PRESSED" and arg == 4) then
+        factor=1.5
         fire_key_pressed = 1
-    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == m16a4_key) then
-        current_weapon = "m16a4"
+    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == 5) then
+        factor=1.8
         fire_key_pressed = 1
-    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == m416_key) then
-        current_weapon = "m416"
+    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == 6) then
+        factor=2.2
         fire_key_pressed = 1
-    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == ump9_key) then
-        current_weapon = "ump9"
+    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == 7) then
+        factor=2.7
         fire_key_pressed = 1
-    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == uzi_key) then
-        current_weapon = "uzi"
-        fire_key_pressed = 1
-    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == scarl_key) then
-        current_weapon = "scarl"
-        fire_key_pressed = 1
+    elseif (event == "MOUSE_BUTTON_PRESSED" and arg == 12) then
+        PressAndReleaseKey(mode_switch_key)
     end
     
     if fire_key_pressed == 1 then 
@@ -208,43 +219,121 @@ function OnEvent(event, arg)
         OutputLogMessage("Functional = %d\n", functional )
     end
     
-    if (event == "MOUSE_BUTTON_PRESSED" and arg == 1) then
-        PressKey(fire_key)
+    if (event == "MOUSE_BUTTON_PRESSED" and arg == 10) then
+        PressMouseButton(1);
+        -- PressKey(fire_key)
     end
-    if (event == "MOUSE_BUTTON_RELEASED" and arg == 1) then
-        ReleaseKey(fire_key)
-    end
-    
-    if (event == "MOUSE_BUTTON_PRESSED" and arg == 1 and functional == 1) then
-        if (recoil_mode() == "basic" and IsKeyLockOn(auto_ads_key))  then
-            PressAndReleaseMouseButton(aim_key)
-        end
-        local shoot_duration = 0.0
-        repeat
-            local intervals,recovery = recoil_value(current_weapon,shoot_duration)
-            if (current_weapon == "m16a4") then
-                PressKey(fire_key)
-                Sleep(intervals)
-                MoveMouseRelative(0, recovery)
-                ReleaseKey(fire_key)
-                
-                Sleep(intervals*2)
-                intervals,recovery = recoil_value(current_weapon,shoot_duration)
-                MoveMouseRelative(0, recovery)
-                
-                Sleep(intervals)
-                intervals,recovery = recoil_value(current_weapon,shoot_duration)
-                MoveMouseRelative(0, recovery)
-            else
-                Sleep(intervals)
-            end
-            MoveMouseRelative(0, recovery)
-            shoot_duration = shoot_duration + intervals
-        until not IsMouseButtonPressed(1)
-    elseif (event == "MOUSE_BUTTON_RELEASED" and arg == 1 and functional == 1) then
+    if (event == "MOUSE_BUTTON_RELEASED" and arg == 10) then
+        ReleaseMouseButton(1);
         -- ReleaseKey(fire_key)
-        if (recoil_mode() == "basic" and IsKeyLockOn(auto_ads_key)) then
-            PressAndReleaseMouseButton(aim_key)
+    end
+    OutputLogMessage(math.random())
+
+    if (event == "MOUSE_BUTTON_PRESSED" and arg == 2 and functional == 1) then
+        if (IsKeyLockOn(auto_ads_key)) then
+            local lean_duration= 0.0
+            local swap_time = lean_base+math.random()*lean_ran
+            local next_leankey = "q"
+            PressKey("e")
+            repeat 
+                lean_duration = lean_duration+1.0
+                -- OutputLogMessage("LEAN_DUR_%f,1[%d]2[%d]\n",lean_duration, bool2int(IsMouseButtonPressed(1)), bool2int(IsMouseButtonPressed(3)))
+                if (lean_duration>swap_time) then
+                    OutputLogMessage("LEAN_SHIFT_%f\n",lean_duration)
+                    ReleaseKey("q")
+                    ReleaseKey("e")
+                    PressKey(next_leankey)
+                    if (next_leankey=="q") then
+                        next_leankey="e"
+                    else
+                        next_leankey="q"
+                    end
+                    lean_duration = 0.0
+                    swap_time = lean_base+math.random()*lean_ran
+                end
+                Sleep(1)
+            until IsMouseButtonPressed(1) or (not IsMouseButtonPressed(3))
+            ReleaseKey("q")
+            ReleaseKey("e")
+        end
+    end
+
+    if (event == "MOUSE_BUTTON_PRESSED" and arg == 1 and functional == 1) then
+
+       
+        -- if (recoil_mode() == "basic" and IsKeyLockOn(auto_ads_key))  then
+            -- PressAndReleaseMouseButton(aim_key)
+        -- end
+        local lean_duration= 0.0
+        local shoot_duration = 0.0
+        intervals=1.0
+        havent_moved=0.0
+        local lean_duration= 0.0
+        local swap_time = lean_base+math.random()*lean_ran
+        local next_leankey = "q"
+        -- if (IsKeyLockOn(auto_ads_key)) then
+        --     PressKey("e")
+        -- end
+        repeat
+            local recovery = recoil_value(factor,shoot_duration)
+            Sleep(1)
+            OutputLogMessage( "%d | Fix = %f\n",shoot_duration, recovery )
+            havent_moved=havent_moved+recovery
+            while(havent_moved>1.0)
+            do
+                MoveMouseRelative(0, 1)
+                -- OutputLogMessage( "MOV\n", recovery )
+                havent_moved=havent_moved-1.0
+            end 
+            shoot_duration = shoot_duration + intervals*7
+            if (IsKeyLockOn(auto_ads_key)) then
+                lean_duration = lean_duration+1.0
+                -- OutputLogMessage("LEAN_DUR_%f,1[%d]2[%d]\n",lean_duration, bool2int(IsMouseButtonPressed(1)), bool2int(IsMouseButtonPressed(3)))
+                if (lean_duration>swap_time) then
+                    OutputLogMessage("LEAN_SHIFT_%f\n",lean_duration)
+                    ReleaseKey("q")
+                    ReleaseKey("e")
+                    PressKey(next_leankey)
+                    if (next_leankey=="q") then
+                        next_leankey="e"
+                    else
+                        next_leankey="q"
+                    end
+                    lean_duration = 0.0
+                    swap_time = lean_base+math.random()*lean_ran
+                end
+            end
+        until not IsMouseButtonPressed(1)
+        if (IsKeyLockOn(auto_ads_key)) then
+            ReleaseKey("q")
+            ReleaseKey("e")
+        end
+    elseif (event == "MOUSE_BUTTON_RELEASED" and arg == 1 and functional == 1) then
+        if (IsKeyLockOn(auto_ads_key)) then
+            local lean_duration= 0.0
+            local swap_time = lean_base+math.random()*lean_ran
+            local next_leankey = "q"
+            PressKey("e")
+            repeat 
+                lean_duration = lean_duration+1.0
+                -- OutputLogMessage("LEAN_DUR_%f,1[%d]2[%d]\n",lean_duration, bool2int(IsMouseButtonPressed(1)), bool2int(IsMouseButtonPressed(3)))
+                if (lean_duration>swap_time) then
+                    OutputLogMessage("LEAN_SHIFT_%f\n",lean_duration)
+                    ReleaseKey("q")
+                    ReleaseKey("e")
+                    PressKey(next_leankey)
+                    if (next_leankey=="q") then
+                        next_leankey="e"
+                    else
+                        next_leankey="q"
+                    end
+                    lean_duration = 0.0
+                    swap_time = lean_base+math.random()*lean_ran
+                end
+                Sleep(1)
+            until IsMouseButtonPressed(1) or (not IsMouseButtonPressed(3))
+            ReleaseKey("q")
+            ReleaseKey("e")
         end
     end
     
